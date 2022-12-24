@@ -40,7 +40,6 @@ class Dot(pg.sprite.Sprite):
     def pop(self):
         self.surface.fill(BG_COLOR)
         for i in range(self.row-1, -1, -1):  # to maintain order of drop()
-            print(i)
             self.dots[self.column][i].drop()
         self.dots[self.column][0] = Dot(self.column, 0, self.screen, self.dots)
         # self.screen.blit(self.surface, self.rect)
