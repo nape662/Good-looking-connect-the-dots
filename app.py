@@ -1,13 +1,13 @@
 from dots import *
 
 # фишка класса это что если у тебя происходит все внутри одного объекта,
-# то его поля по факту глобальные и (self.x means global x)
+# то его поля по факту глобальные и (self.x ~= global x)
 
 
 def get_square_coord(coords):
     x, y = coords
     dotx = int((x - (SCREEN_WIDTH - 600) / 2) // 100)
-    doty = int((y - 175) // 100)
+    doty = int((y - 175) // 100) # might change if we change window size
     if dotx > 5:
         dotx = 5
     if doty > 5:
@@ -31,7 +31,6 @@ class App:
             for j in range(6):
                 self.dots[j][i] = (Dot(j, i, self.screen, self.dots))
         self.connected = list()
-        self.lines = list()
 
     def draw_line(self, new_dot):
         pg.draw.line(self.screen, self.connected[-1].colour, self.connected[-1].rect.center, new_dot.rect.center, width=10)
@@ -42,11 +41,27 @@ class App:
         self.connected.pop(-1)
 
     def handle_connected(self):
+    # ONLY FIRST LOOPED DOTS POP RIGHT!
         self.screen.fill(BG_COLOR)  # erases all lines
         if len(self.connected) > 1:
-            for i in self.connected:
-                i.pop()
+            if self.connected_has_loop():
+                loop_colour_number = self.connected[0].colour_number
+                for i in self.dots:
+                    for j in i:
+                        if j.colour_number == loop_colour_number:
+                            print(j.colour_number, loop_colour_number)
+                            j.pop(loop=True)  # can we make this less ugly?
+            else:
+                for i in self.connected:
+                    i.pop()
         self.connected.clear()
+
+    def connected_has_loop(self):
+        for i in range(len(self.connected)):
+            for j in range(i):
+                if self.connected[i] == self.connected[j]:
+                    return True
+        return False
 
     def handle_mouse(self, event):
         try:
@@ -60,6 +75,8 @@ class App:
                         doty == self.connected[-1].row and abs(dotx - self.connected[-1].column <= 1)):
                     if len(self.connected) > 1 and self.dots[dotx][doty] == self.connected[-2]:
                         self.shorten_line()
+                    elif self.connected_has_loop() and self.dots[dotx][doty] in self.connected:
+                        pass
                     else:
                         self.draw_line(self.dots[dotx][doty])
         except AttributeError:  # if click on screen release off screen get AttributeError
@@ -76,6 +93,9 @@ class App:
                     self.handle_mouse(event)
                 elif event.type == pg.MOUSEBUTTONUP:
                     self.handle_connected()
+                elif event.type == pg.KEYDOWN:
+                    dotx, doty = get_square_coord(pg.mouse.get_pos())
+                    self.dots[dotx][doty].pop()
 
             # draws to screen
             for i in self.dots:
