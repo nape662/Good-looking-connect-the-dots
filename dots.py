@@ -12,12 +12,13 @@ EXCLUDED_COLOR = None
 
 
 class Dot(pg.sprite.Sprite):
-    def __init__(self, column, row, screen, dots, exclude_this_colour=None):
+    def __init__(self, column, row, dots, exclude_this_colour=None):
         pg.sprite.Sprite.__init__(self)
         self.dots = dots  # 2 dimensional list
         self.row = row
         self.column = column
-        # короче фишка в том, что если ты срезал цикл некоего цвета, то после этого не должны спавниться кружочки этого цвета
+
+        # if you make a loop then dots of this colour shouldn't spawn after you clear the loop
         if exclude_this_colour is not None:
             numbers = [i for i in range(len(COLOUR_LIST))]
             numbers.pop(exclude_this_colour)
@@ -27,7 +28,6 @@ class Dot(pg.sprite.Sprite):
             self.colour_number = randint(0, len(COLOUR_LIST) - 1)
             self.colour = COLOUR_LIST[self.colour_number]
         # drawing to screen
-        self.screen = screen
         self.surface = pg.Surface((50, 50))
         self.surface.set_colorkey((0, 0, 0), pg.RLEACCEL)
         self.rect = self.surface.get_rect(left=(self.column * 100 + (SCREEN_WIDTH - 550) / 2), top=(self.row + 2) * 100)
@@ -48,7 +48,6 @@ class Dot(pg.sprite.Sprite):
         for i in range(self.row-1, -1, -1):  # to maintain order of drop()
             self.dots[self.column][i].drop()
         if in_loop:
-            # print("AVOID", self.colour_number)
-            self.dots[self.column][0] = Dot(self.column, 0, self.screen, self.dots, self.colour_number)
+            self.dots[self.column][0] = Dot(self.column, 0, self.dots, self.colour_number)
         else:
-            self.dots[self.column][0] = Dot(self.column, 0, self.screen, self.dots)
+            self.dots[self.column][0] = Dot(self.column, 0, self.dots)
