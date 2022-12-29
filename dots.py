@@ -5,18 +5,19 @@ SCREEN_WIDTH = 650
 SCREEN_HEIGHT = 800
 BG_COLOR = (240, 228, 202, 255)
 COLOUR_LIST = [(125, 179, 73), (210, 106, 70), (243, 192, 58), (123, 85, 125), (90, 191, 211)]
-EXCLUDED_COLOR = None
-
-# inherit Sprite class with no real purpose tbh (in class Dot)
-# since I'm not using collision or group draw methods
 
 
-class Dot(pg.sprite.Sprite):
+def row_into_y(y):
+    return (y + 2) * 100
+
+
+class Dot:
     def __init__(self, column, row, dots, exclude_this_colour=None):
-        pg.sprite.Sprite.__init__(self)
         self.dots = dots  # 2 dimensional list
         self.row = row
         self.column = column
+        self.x = self.column * 100 + (SCREEN_WIDTH - 550) / 2
+        self.y = row_into_y(self.row)
 
         # if you make a loop then dots of this colour shouldn't spawn after you clear the loop
         if exclude_this_colour is not None:
@@ -27,11 +28,13 @@ class Dot(pg.sprite.Sprite):
         else:
             self.colour_number = randint(0, len(COLOUR_LIST) - 1)
             self.colour = COLOUR_LIST[self.colour_number]
+
         # drawing to screen
         self.surface = pg.Surface((50, 50))
         self.surface.set_colorkey((0, 0, 0), pg.RLEACCEL)
-        self.rect = self.surface.get_rect(left=(self.column * 100 + (SCREEN_WIDTH - 550) / 2), top=(self.row + 2) * 100)
+        self.rect = self.surface.get_rect(left=self.x, top=self.y)
         pg.draw.circle(self.surface, self.colour, center=(25, 25), radius=25)
+
         # self.is_falling = False  # animation later
 
     def drop(self):
@@ -39,8 +42,9 @@ class Dot(pg.sprite.Sprite):
         if self.row < 5:
             self.dots[self.column][self.row + 1] = self
         self.row += 1
+        self.y = row_into_y(self.row)
 
-        self.rect = self.surface.get_rect(left=(self.column * 100 + (SCREEN_WIDTH - 550) / 2), top=(self.row + 2) * 100)
+        self.rect = self.surface.get_rect(left=self.x, top=self.y)
         pg.draw.circle(self.surface, self.colour, center=(25, 25), radius=25)
 
     def pop(self, in_loop=False):
