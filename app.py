@@ -21,7 +21,6 @@ class App:
         self.FPS = FPS
         self.follow_mouse = True
         self.recently_clicked = False
-
         self.recently_popped = list()
         self.connected = list()
         self.lines = list()  # each item in lines is a set containing 2 Dots
@@ -31,15 +30,18 @@ class App:
                 self.dots[i][j] = Dot(i, j, self)
 
     def draw_line(self, new_dot):
-        pg.draw.line(self.screen, self.connected[-1].colour, self.connected[-1].rect.center, new_dot.rect.center, width=10)
         self.connected.append(new_dot)
+        new_dot.start_highlight()
+        if self.connected_has_loop():
+            for i in range(6):
+                for j in range(6):
+                    if self.dots[i][j].colour_number == self.connected[0].colour_number:
+                        self.dots[i][j].start_highlight()
         self.lines.append({self.connected[-1], self.connected[-2]})
-        pg.time.set_timer(WAIT_FOR_LINE, 100)
-        self.follow_mouse = False
+        self.set_follow_mouse_timer()
         self.recently_clicked = False
 
     def shorten_line(self):
-        pg.draw.line(self.screen, BG_COLOR, self.connected[-1].rect.center, self.connected[-2].rect.center, width=10)
         self.connected.pop(-1)
         self.lines.pop(-1)
         self.set_follow_mouse_timer()
@@ -88,10 +90,10 @@ class App:
         try:
             dotx, doty = get_square_coord(pg.mouse.get_pos())
             if doty >= 0:
-                self.follow_mouse = True
                 if self.dots[dotx][doty].current_falling_frame == 0 or self.dots[dotx][doty].current_falling_frame >= 7:
                     if not self.connected:
                         self.connected.append(self.dots[dotx][doty])
+                        self.dots[dotx][doty].start_highlight()
                     elif self.dots[dotx][doty].colour_number == self.connected[-1].colour_number and (
                             (dotx == self.connected[-1].column and abs(doty - self.connected[-1].row) == 1) or (
                                 doty == self.connected[-1].row and abs(dotx - self.connected[-1].column) == 1)):
@@ -136,13 +138,10 @@ class App:
         self.screen.fill(BG_COLOR)
         for i in self.recently_popped:
             i.disappear()
-            self.screen.blit(i.surface, i.rect)
-        for i in self.connected:
-            i.highlight()
         for i in self.dots:
             for j in i:
-                j.fall()
-                self.screen.blit(j.surface, j.rect)
+                j.move()
+                j.highlight()
         for i in self.lines:
             first_dot, second_dot = i
             pg.draw.line(self.screen, first_dot.colour, first_dot.rect.center, second_dot.rect.center,

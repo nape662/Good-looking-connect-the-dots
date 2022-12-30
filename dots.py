@@ -38,6 +38,9 @@ class Dot:
         # other animation stuff
         self.current_falling_frame = 1
         self.current_disappearing_frame = 0
+        self.current_highlight_frame = 0
+        self.highlight_surface = pg.Surface((100, 100))
+        self.highlight_surface.set_colorkey((0, 0, 0))
 
     def drop(self):
         # immediately becomes lower dot as a game element
@@ -62,7 +65,7 @@ class Dot:
     def movement_coefficient(self):
         return (row_into_y(self.row) - self.y) / (169 - self.current_falling_frame**2)  # this is to aid with wobbling and
 
-    def fall(self):
+    def move(self):
         # there are 12 frames when it falls
         if 1 <= self.current_falling_frame <= 12:
             self.y += (2 * self.current_falling_frame + 1) * self.movement_coefficient()
@@ -77,17 +80,29 @@ class Dot:
             self.y = round(self.y)
             self.rect = self.surface.get_rect(left=self.x, top=self.y)
             self.current_falling_frame = 0
+        self.app.screen.blit(self.surface, self.rect)
 
     def disappear(self):
         if 6 >= self.current_disappearing_frame >= 1:
-            self.surface.fill((0, 0, 0))  # it's transparent
+            self.surface.fill((0, 0, 0))
             pg.draw.circle(self.surface, self.colour, center=(50, 50), radius=25-(self.current_disappearing_frame * 4))
             self.current_disappearing_frame += 1
+            self.app.screen.blit(self.surface, self.rect)
         elif self.current_disappearing_frame > 6:
-            for i in self.app.recently_popped:
-                if i == self:
-                    self.app.recently_popped.remove(self)
+            self.app.recently_popped.remove(self)
 
     def highlight(self):
-        pass
+        if 0 < self.current_highlight_frame <= 3:
+            self.current_highlight_frame += 1
+        elif 4 <= self.current_highlight_frame <= 24:
+            self.highlight_surface.fill((0, 0, 0))
+            self.highlight_surface.set_alpha(255 - self.current_highlight_frame * 10)
+            pg.draw.circle(self.highlight_surface, self.colour, center=(50, 50), radius=25+self.current_highlight_frame)
+            self.current_highlight_frame += 1
+            self.app.screen.blit(self.highlight_surface, self.rect)
+        elif self.current_highlight_frame > 20:
+            self.highlight_surface.set_alpha(0)
+            self.current_highlight_frame = 0
 
+    def start_highlight(self):
+        self.current_highlight_frame = 1
