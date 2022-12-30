@@ -8,7 +8,7 @@ WAIT_FOR_DOUBLECLICK = pg.event.custom_type()
 
 def get_square_coord(coords):
     x, y = coords
-    return max(min(int((x - (SCREEN_WIDTH - 600) / 2) // 100), 5), 0), max(min(int((y - 175) // 100), 5), 0)
+    return max(min(int((x - (SCREEN_WIDTH - 600) / 2) // 100), 5), 0), min(int((y - 175) // 100), 5)
 
 
 class App:
@@ -22,12 +22,13 @@ class App:
         self.follow_mouse = True
         self.recently_clicked = False
 
+        self.recently_popped = list()
+        self.connected = list()
+        self.lines = list()  # each item in lines is a set containing 2 Dots
         self.dots = [[0] * 6 for i in range(6)]
         for i in range(6):
             for j in range(6):
-                self.dots[i][j] = (Dot(i, j, self.dots))
-        self.connected = list()
-        self.lines = list()  # each item in lines is a set containing 2 Dots
+                self.dots[i][j] = Dot(i, j, self)
 
     def draw_line(self, new_dot):
         pg.draw.line(self.screen, self.connected[-1].colour, self.connected[-1].rect.center, new_dot.rect.center, width=10)
@@ -35,6 +36,7 @@ class App:
         self.lines.append({self.connected[-1], self.connected[-2]})
         pg.time.set_timer(WAIT_FOR_LINE, 100)
         self.follow_mouse = False
+        self.recently_clicked = False
 
     def shorten_line(self):
         pg.draw.line(self.screen, BG_COLOR, self.connected[-1].rect.center, self.connected[-2].rect.center, width=10)
@@ -43,7 +45,7 @@ class App:
         self.set_follow_mouse_timer()
 
     def line_follow_mouse(self):
-        if self.follow_mouse and self.connected:
+        if self.follow_mouse and self.connected and (self.connected[-1].current_falling_frame == 0 or self.connected[-1].current_falling_frame >= 7):
             pg.draw.line(self.screen, self.connected[-1].colour, self.connected[-1].rect.center, pg.mouse.get_pos(), width=10)
 
     def set_follow_mouse_timer(self):
@@ -56,6 +58,7 @@ class App:
             if (dotx, doty) == self.recently_clicked:
                 self.dots[dotx][doty].pop()
             pg.time.set_timer(WAIT_FOR_DOUBLECLICK, 0)
+            self.set_follow_mouse_timer()
             self.recently_clicked = False
         else:
             self.recently_clicked = get_square_coord(pg.mouse.get_pos())
@@ -84,16 +87,21 @@ class App:
     def handle_mouse(self):
         try:
             dotx, doty = get_square_coord(pg.mouse.get_pos())
-            if not self.connected:
-                self.connected.append(self.dots[dotx][doty])
-            elif self.dots[dotx][doty].colour_number == self.connected[-1].colour_number and (
-                    (dotx == self.connected[-1].column and abs(doty - self.connected[-1].row) == 1) or (
-                        doty == self.connected[-1].row and abs(dotx - self.connected[-1].column) == 1)):
-                if self.lines and {self.connected[-1], self.dots[dotx][doty]} == self.lines[-1]:
-                    self.shorten_line()
-                elif {self.connected[-1], self.dots[dotx][doty]} not in self.lines:
-                    self.draw_line(self.dots[dotx][doty])
-        except AttributeError:  # if click on screen release off screen get AttributeError
+            if doty >= 0:
+                self.follow_mouse = True
+                if self.dots[dotx][doty].current_falling_frame == 0 or self.dots[dotx][doty].current_falling_frame >= 7:
+                    if not self.connected:
+                        self.connected.append(self.dots[dotx][doty])
+                    elif self.dots[dotx][doty].colour_number == self.connected[-1].colour_number and (
+                            (dotx == self.connected[-1].column and abs(doty - self.connected[-1].row) == 1) or (
+                                doty == self.connected[-1].row and abs(dotx - self.connected[-1].column) == 1)):
+                        if self.lines and {self.connected[-1], self.dots[dotx][doty]} == self.lines[-1]:
+                            self.shorten_line()
+                        elif {self.connected[-1], self.dots[dotx][doty]} not in self.lines:
+                            self.draw_line(self.dots[dotx][doty])
+            else:
+                self.follow_mouse = False  # so it doesn't follow when press way above the dots field
+        except AttributeError:  # if click on screen then release off-screen, you get AttributeError
             pass
 
     def handle_inputs(self):
@@ -126,8 +134,14 @@ class App:
 
     def draw_on_screen(self):
         self.screen.fill(BG_COLOR)
+        for i in self.recently_popped:
+            i.disappear()
+            self.screen.blit(i.surface, i.rect)
+        for i in self.connected:
+            i.highlight()
         for i in self.dots:
             for j in i:
+                j.fall()
                 self.screen.blit(j.surface, j.rect)
         for i in self.lines:
             first_dot, second_dot = i
