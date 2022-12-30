@@ -36,7 +36,13 @@ class Dot:
         pg.draw.circle(self.surface, self.colour, center=(50, 50), radius=25)
 
         # other animation stuff
-        self.current_falling_frame = 1
+        if self.row == 0:
+            if self.app.dots[self.column][1].current_falling_frame < 0:
+                self.current_falling_frame = self.app.dots[self.column][1].current_falling_frame - 8
+            else:
+                self.current_falling_frame = -7
+        else:
+            self.current_falling_frame = -7 + (self.row-5) * 4
         self.current_disappearing_frame = 0
         self.current_highlight_frame = 0
         self.highlight_surface = pg.Surface((100, 100))
@@ -47,8 +53,14 @@ class Dot:
         if self.row < 5:
             self.app.dots[self.column][self.row + 1] = self
         self.row += 1
-        if self.current_falling_frame <= 12:
-            self.current_falling_frame = max(1, min(self.current_falling_frame, 7))  # min-max for chained falls
+        stable_row = 5
+        for i in self.app.dots[self.column][self.row:5]:
+            if i.current_falling_frame == 0:
+                stable_row = i.row
+        if self.current_falling_frame <= 0:
+            self.current_falling_frame = -7 + (self.row-stable_row) * 4  # dots fall after each other
+        elif 0 < self.current_falling_frame <= 12:  # for chained falls
+            self.current_falling_frame = max(1, min(self.current_falling_frame, 7))
         else:
             self.current_falling_frame = 1  # for future wobbling
 
@@ -65,16 +77,19 @@ class Dot:
     def movement_coefficient(self):
         return (row_into_y(self.row) - self.y) / (169 - self.current_falling_frame**2)  # this is to aid with wobbling and
 
-    def move(self):
+    def update_position(self):
         # there are 12 frames when it falls
-        if 1 <= self.current_falling_frame <= 12:
+        if self.current_falling_frame < 0:
+            self.current_falling_frame += 2
+        elif 1 <= self.current_falling_frame <= 12:
             self.y += (2 * self.current_falling_frame + 1) * self.movement_coefficient()
             self.rect = self.surface.get_rect(left=self.x, top=self.y)
             self.current_falling_frame += 1
-        # then it should wobble in elifs for next 12 frames (just copy frame by frame what's happening in original game)
-        # elif 12 < self.current_falling_frame <= 24:
+        # then it should wobble in elif's for next 12 frames (just copy frame by frame what's happening in original game)
+        # elif self.current_falling_frame == 13:
+        # elif == 14
         #    self.y += ((self.current_falling_frame % 2) - 0.5) * 10
-        #    self.rect = self.surface.get_rect(left=self.x, top=self.y)
+        #   self.rect = self.surface.get_rect(left=self.x, top=self.y)
         #    self.current_falling_frame += 1
         elif self.current_falling_frame > 12:
             self.y = round(self.y)
@@ -103,6 +118,3 @@ class Dot:
         elif self.current_highlight_frame > 20:
             self.highlight_surface.set_alpha(0)
             self.current_highlight_frame = 0
-
-    def start_highlight(self):
-        self.current_highlight_frame = 1

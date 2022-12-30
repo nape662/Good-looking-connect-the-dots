@@ -3,6 +3,9 @@ from dots import *
 FPS = 60
 WAIT_FOR_LINE = pg.event.custom_type()
 WAIT_FOR_DOUBLECLICK = pg.event.custom_type()
+SCREEN_WIDTH = 650
+SCREEN_HEIGHT = 800
+BG_COLOR = (240, 228, 202, 255)
 # Process finished with exit code -1073741819 (0xC0000005) ??????????????????
 
 
@@ -26,17 +29,17 @@ class App:
         self.lines = list()  # each item in lines is a set containing 2 Dots
         self.dots = [[0] * 6 for i in range(6)]
         for i in range(6):
-            for j in range(6):
+            for j in range(5, -1, -1):
                 self.dots[i][j] = Dot(i, j, self)
 
     def draw_line(self, new_dot):
         self.connected.append(new_dot)
-        new_dot.start_highlight()
+        new_dot.current_highlight_frame = 1
         if self.connected_has_loop():
             for i in range(6):
                 for j in range(6):
                     if self.dots[i][j].colour_number == self.connected[0].colour_number:
-                        self.dots[i][j].start_highlight()
+                        self.dots[i][j].current_highlight_frame = 1
         self.lines.append({self.connected[-1], self.connected[-2]})
         self.set_follow_mouse_timer()
         self.recently_clicked = False
@@ -93,7 +96,7 @@ class App:
                 if self.dots[dotx][doty].current_falling_frame == 0 or self.dots[dotx][doty].current_falling_frame >= 7:
                     if not self.connected:
                         self.connected.append(self.dots[dotx][doty])
-                        self.dots[dotx][doty].start_highlight()
+                        self.dots[dotx][doty].current_highlight_frame = 1
                     elif self.dots[dotx][doty].colour_number == self.connected[-1].colour_number and (
                             (dotx == self.connected[-1].column and abs(doty - self.connected[-1].row) == 1) or (
                                 doty == self.connected[-1].row and abs(dotx - self.connected[-1].column) == 1)):
@@ -140,7 +143,7 @@ class App:
             i.disappear()
         for i in self.dots:
             for j in i:
-                j.move()
+                j.update_position()
                 j.highlight()
         for i in self.lines:
             first_dot, second_dot = i
