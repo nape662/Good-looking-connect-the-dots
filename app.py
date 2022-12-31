@@ -20,6 +20,8 @@ class App:
         pg.display.set_caption("Dots")
         self.screen = pg.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
         self.screen.fill(BG_COLOR)
+        self.background_highlight_surface = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.background_highlight_surface.set_alpha(0)
         self.running = False
         self.FPS = FPS
         self.follow_mouse = True
@@ -35,7 +37,7 @@ class App:
     def draw_line(self, new_dot):
         self.connected.append(new_dot)
         new_dot.current_highlight_frame = 1
-        if self.connected_has_loop():
+        if self.just_made_loop():
             for i in range(6):
                 for j in range(6):
                     if self.dots[i][j].colour_number == self.connected[0].colour_number:
@@ -74,6 +76,12 @@ class App:
             for j in range(i):
                 if self.connected[i] == self.connected[j]:
                     return True
+        return False
+
+    def just_made_loop(self):
+        for i in self.connected[:-1]:
+            if i == self.connected[-1]:
+                return True
         return False
 
     def handle_connected(self):
@@ -124,6 +132,9 @@ class App:
                 self.recently_clicked = False
             elif event.type == pg.MOUSEBUTTONDOWN:
                 self.handle_doubleclick()
+            elif event.type == pg.KEYDOWN:
+                dotx, doty = get_square_coord(pg.mouse.get_pos())
+                print(self.dots[dotx][doty].current_falling_frame)
         if pg.mouse.get_pressed()[0]:
             self.handle_mouse()
 
@@ -150,6 +161,12 @@ class App:
             pg.draw.line(self.screen, first_dot.colour, first_dot.rect.center, second_dot.rect.center,
                          width=10)
         self.line_follow_mouse()
+        if self.connected_has_loop():
+            self.background_highlight_surface.set_alpha(40)
+            self.background_highlight_surface.fill(self.connected[0].colour)
+        else:
+            self.background_highlight_surface.set_alpha(0)
+        self.screen.blit(self.background_highlight_surface, (0, 0))
         pg.display.flip()
 
     def run(self):
