@@ -1,4 +1,5 @@
 from dots import *
+from button import *
 
 FPS = 60
 WAIT_FOR_LINE = pg.event.custom_type()
@@ -6,6 +7,11 @@ WAIT_FOR_DOUBLECLICK = pg.event.custom_type()
 SCREEN_WIDTH = 650
 SCREEN_HEIGHT = 800
 BG_COLOR = (240, 228, 202, 255)
+PAUSE_BUTTON_X = SCREEN_WIDTH * 0.25
+PAUSE_BUTTON_Y_RELATIVE = 0.33
+PAUSE_BUTTON_WIDTH = SCREEN_WIDTH * 0.5
+
+
 # Process finished with exit code -1073741819 (0xC0000005) ??????????????????
 
 
@@ -22,14 +28,49 @@ class App:
         self.screen.fill(BG_COLOR)
         self.background_highlight_surface = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.background_highlight_surface.set_alpha(0)
+        self.game_tick = 0
         self.running = False
         self.FPS = FPS
-        self.follow_mouse = True
+        self.follow_mouse = False
         self.recently_clicked = False
         self.recently_popped = list()
         self.connected = list()
         self.lines = list()  # each item in lines is a set containing 2 Dots
         self.dots = [[0] * 6 for i in range(6)]
+        for i in range(6):
+            for j in range(5, -1, -1):
+                self.dots[i][j] = Dot(i, j, self)
+        self.buttons = list()
+        self.continue_button = Button(self, (PAUSE_BUTTON_X, SCREEN_HEIGHT * PAUSE_BUTTON_Y_RELATIVE),
+                                      "Unpause", PAUSE_BUTTON_WIDTH, COLOUR_LIST[2])
+        self.restart_button = Button(self,
+                                     (PAUSE_BUTTON_X, SCREEN_HEIGHT * PAUSE_BUTTON_Y_RELATIVE + SCREEN_WIDTH * 0.15),
+                                     "Restart", PAUSE_BUTTON_WIDTH, COLOUR_LIST[3])
+        self.buttons.append(self.restart_button)
+        self.buttons.append(self.continue_button)
+        self.mode = None
+        self.restart()
+        # self.mode set in Dots.fly() when dots flew in/out properly
+
+    def pause(self):
+        for i in self.dots:
+            for j in i:
+                j.fly_out()
+        for i in self.buttons:
+            i.fly_in()
+
+    def unpause(self):
+        for i in self.dots:
+            for j in i:
+                j.fly_in()
+        for i in self.buttons:
+            i.fly_out()
+
+    def restart(self):
+        self.mode = "Game"
+        for i in self.buttons:
+            i.fly_out()
+        self.game_tick = 1
         for i in range(6):
             for j in range(5, -1, -1):
                 self.dots[i][j] = Dot(i, j, self)
@@ -52,8 +93,10 @@ class App:
         self.set_follow_mouse_timer()
 
     def line_follow_mouse(self):
-        if self.follow_mouse and self.connected and (self.connected[-1].current_falling_frame == 0 or self.connected[-1].current_falling_frame >= 7):
-            pg.draw.line(self.screen, self.connected[-1].colour, self.connected[-1].rect.center, pg.mouse.get_pos(), width=10)
+        if self.follow_mouse and self.connected and (
+                self.connected[-1].current_falling_frame == 0 or self.connected[-1].current_falling_frame >= 7):
+            pg.draw.line(self.screen, self.connected[-1].colour, self.connected[-1].rect.center, pg.mouse.get_pos(),
+                         width=10)
 
     def set_follow_mouse_timer(self):
         pg.time.set_timer(WAIT_FOR_LINE, 100)
@@ -107,42 +150,51 @@ class App:
                         self.dots[dotx][doty].current_highlight_frame = 1
                     elif self.dots[dotx][doty].colour_number == self.connected[-1].colour_number and (
                             (dotx == self.connected[-1].column and abs(doty - self.connected[-1].row) == 1) or (
-                                doty == self.connected[-1].row and abs(dotx - self.connected[-1].column) == 1)):
+                            doty == self.connected[-1].row and abs(dotx - self.connected[-1].column) == 1)):
                         if self.lines and {self.connected[-1], self.dots[dotx][doty]} == self.lines[-1]:
                             self.shorten_line()
                         elif {self.connected[-1], self.dots[dotx][doty]} not in self.lines:
                             self.draw_line(self.dots[dotx][doty])
-            else:
-                self.follow_mouse = False  # so it doesn't follow when press way above the dots field
         except AttributeError:  # if click on screen then release off-screen, you get AttributeError
             pass
 
     def handle_inputs(self):
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                self.running = False
-                break
-            elif event.type == pg.MOUSEBUTTONUP:
-                self.handle_connected()
-            elif event.type == WAIT_FOR_LINE:
-                pg.time.set_timer(WAIT_FOR_LINE, 0)
-                self.follow_mouse = True
-            elif event.type == WAIT_FOR_DOUBLECLICK:
-                pg.time.set_timer(WAIT_FOR_DOUBLECLICK, 0)
-                self.recently_clicked = False
-            elif event.type == pg.MOUSEBUTTONDOWN:
-                self.handle_doubleclick()
-            elif event.type == pg.KEYDOWN:
-                dotx, doty = get_square_coord(pg.mouse.get_pos())
-                print(self.dots[dotx][doty].current_falling_frame)
-        if pg.mouse.get_pressed()[0]:
-            self.handle_mouse()
+        if self.mode == "Game" and self.game_tick >= 40:
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    self.running = False
+                    break
+                elif event.type == pg.MOUSEBUTTONUP:
+                    self.handle_connected()
+                elif event.type == WAIT_FOR_LINE:
+                    pg.time.set_timer(WAIT_FOR_LINE, 0)
+                    self.follow_mouse = True
+                elif event.type == WAIT_FOR_DOUBLECLICK:
+                    pg.time.set_timer(WAIT_FOR_DOUBLECLICK, 0)
+                    self.recently_clicked = False
+                elif event.type == pg.MOUSEBUTTONDOWN:
+                    self.handle_doubleclick()
+                elif event.type == pg.KEYDOWN:
+                    if event.key == pg.K_ESCAPE:
+                        self.pause()
+            if pg.mouse.get_pressed()[0]:
+                self.handle_mouse()
+        elif self.mode == "Pause":
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    self.running = False
+                    break
+                elif event.type == pg.MOUSEBUTTONDOWN:
+                    if self.continue_button.mouse_in_button():
+                        self.unpause()
+                    if self.restart_button.mouse_in_button():
+                        self.restart()
 
     def exclude_impossible(self):  # checks if there are dots to pair up
         for i in range(6):
             for j in range(5):
-                if self.dots[i][j].colour_number == self.dots[i][j+1].colour_number\
-                        or self.dots[j][i].colour_number == self.dots[j+1][i].colour_number:
+                if self.dots[i][j].colour_number == self.dots[i][j + 1].colour_number \
+                        or self.dots[j][i].colour_number == self.dots[j + 1][i].colour_number:
                     return False
         for i in range(6):
             for j in range(6):
@@ -150,32 +202,43 @@ class App:
 
     def draw_on_screen(self):
         self.screen.fill(BG_COLOR)
-        for i in self.recently_popped:
-            i.disappear()
+        if self.mode == "Game" and self.game_tick >= 40:
+            for i in self.recently_popped:
+                i.disappear()
+            for i in self.dots:
+                for j in i:
+                    j.update_position()
+                    j.highlight()
+            for i in self.lines:
+                first_dot, second_dot = i
+                pg.draw.line(self.screen, first_dot.colour, first_dot.rect.center, second_dot.rect.center,
+                             width=10)
+            self.line_follow_mouse()
+            if self.connected_has_loop():
+                self.background_highlight_surface.set_alpha(40)
+                self.background_highlight_surface.fill(self.connected[0].colour)
+            else:
+                self.background_highlight_surface.set_alpha(0)
+            self.screen.blit(self.background_highlight_surface, (0, 0))
+        self.continue_button.fly()
+        self.restart_button.fly()
         for i in self.dots:
             for j in i:
-                j.update_position()
-                j.highlight()
-        for i in self.lines:
-            first_dot, second_dot = i
-            pg.draw.line(self.screen, first_dot.colour, first_dot.rect.center, second_dot.rect.center,
-                         width=10)
-        self.line_follow_mouse()
-        if self.connected_has_loop():
-            self.background_highlight_surface.set_alpha(40)
-            self.background_highlight_surface.fill(self.connected[0].colour)
-        else:
-            self.background_highlight_surface.set_alpha(0)
-        self.screen.blit(self.background_highlight_surface, (0, 0))
+                j.fly()
         pg.display.flip()
 
     def run(self):
         self.running = True
         while self.running:
             pg.time.Clock().tick_busy_loop(FPS)
+            self.game_tick += 1
             self.handle_inputs()
-            self.exclude_impossible()
+            # self.exclude_impossible()
             self.draw_on_screen()
+
+            # if self.mode == Pause:
+            # if self.mode == Main menu:
+            # if self.mode == After game:
         return 0
 
 
