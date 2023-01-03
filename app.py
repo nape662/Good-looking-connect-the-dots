@@ -10,6 +10,7 @@ BG_COLOR = (240, 228, 202, 255)
 PAUSE_BUTTON_X = SCREEN_WIDTH * 0.25
 PAUSE_BUTTON_Y_RELATIVE = 0.33
 PAUSE_BUTTON_WIDTH = SCREEN_WIDTH * 0.5
+PAUSE_TRANSITION_LENGTH = 25
 
 
 # Process finished with exit code -1073741819 (0xC0000005) ??????????????????
@@ -29,6 +30,7 @@ class App:
         self.background_highlight_surface = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.background_highlight_surface.set_alpha(0)
         self.game_tick = 0
+        self.transition_tick = 0
         self.running = False
         self.FPS = FPS
         self.follow_mouse = False
@@ -53,6 +55,9 @@ class App:
         # self.mode set in Dots.fly() when dots flew in/out properly
 
     def pause(self):
+        self.mode = "Pause transition"
+        self.transition_tick = 1
+        self.handle_connected()
         for i in self.dots:
             for j in i:
                 j.fly_out()
@@ -60,6 +65,8 @@ class App:
             i.fly_in()
 
     def unpause(self):
+        self.mode = "Pause transition"
+        self.transition_tick = PAUSE_TRANSITION_LENGTH + 1
         for i in self.dots:
             for j in i:
                 j.fly_in()
@@ -67,7 +74,8 @@ class App:
             i.fly_out()
 
     def restart(self):
-        self.mode = "Game"
+        self.mode = "Pause transition"
+        self.transition_tick = PAUSE_TRANSITION_LENGTH + 1
         for i in self.buttons:
             i.fly_out()
         self.game_tick = 1
@@ -159,7 +167,7 @@ class App:
             pass
 
     def handle_inputs(self):
-        if self.mode == "Game" and self.game_tick >= 40:
+        if self.mode == "Game" and self.game_tick >= 10:
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     self.running = False
@@ -202,7 +210,7 @@ class App:
 
     def draw_on_screen(self):
         self.screen.fill(BG_COLOR)
-        if self.mode == "Game" and self.game_tick >= 40:
+        if self.mode == "Game" and self.game_tick >= 10:
             for i in self.recently_popped:
                 i.disappear()
             for i in self.dots:
@@ -220,25 +228,32 @@ class App:
             else:
                 self.background_highlight_surface.set_alpha(0)
             self.screen.blit(self.background_highlight_surface, (0, 0))
-        self.continue_button.fly()
-        self.restart_button.fly()
-        for i in self.dots:
-            for j in i:
-                j.fly()
+        elif self.mode == "Pause transition":
+            self.continue_button.fly()
+            self.restart_button.fly()
+            for i in self.dots:
+                for j in i:
+                    j.fly()
+        elif self.mode == "Pause":
+            self.continue_button.draw()
+            self.restart_button.draw()
         pg.display.flip()
 
     def run(self):
         self.running = True
         while self.running:
             pg.time.Clock().tick_busy_loop(FPS)
-            self.game_tick += 1
             self.handle_inputs()
-            # self.exclude_impossible()
+            self.exclude_impossible()
             self.draw_on_screen()
-
-            # if self.mode == Pause:
-            # if self.mode == Main menu:
-            # if self.mode == After game:
+            if self.mode == "Game":
+                self.game_tick += 1
+            elif self.mode == "Pause transition":
+                self.transition_tick += 1
+                if self.transition_tick == PAUSE_TRANSITION_LENGTH:
+                    self.mode = "Pause"
+                elif self.transition_tick == 2 * PAUSE_TRANSITION_LENGTH:
+                    self.mode = "Game"
         return 0
 
 

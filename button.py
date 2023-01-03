@@ -5,7 +5,7 @@ class Button:
     def __init__(self, app, position, text, width, colour, command=lambda: print("No command activated for this button")):
         self.app = app
         self.x, self.y = position
-        self.x += 600
+        self.x += 750
         self.width = width
         self.height = width * 0.2
         self.surface = pg.Surface((width, width*0.2))
@@ -34,19 +34,27 @@ class Button:
             self.current_flying_frame = 1
 
     def fly_out(self):
-        if self.current_flying_frame == 7:
-            self.current_flying_frame = 8
+        if self.current_flying_frame == 17:
+            self.current_flying_frame += 1
 
     def fly(self):
-        if 1 <= self.current_flying_frame <= 6:
-            self.x -= 100
-        elif 13 >= self.current_flying_frame >= 8:
-            self.x += 100
-        elif self.current_flying_frame > 13:
+        if 2 <= self.current_flying_frame <= 7:
+            self.x -= 125
+        elif self.current_flying_frame == 8:
+            self.x -= 80
+        elif 9 <= self.current_flying_frame <= 10:
+            self.x += 7
+        elif 11 <= self.current_flying_frame <= 15:
+            self.x += 12
+        elif self.current_flying_frame == 16:
+            self.x += 6
+        elif 18 <= self.current_flying_frame <= 23:
+            self.x += 125
+        elif self.current_flying_frame > 23:
             self.current_flying_frame = 0
         self.rect = self.surface.get_rect(left=self.x, top=self.y)
         self.text_rect = self.text.get_rect(center=(self.width * 0.5, self.height * 0.5))
-        if self.current_flying_frame != 0 and self.current_flying_frame != 7:
+        if self.current_flying_frame != 0 and self.current_flying_frame != 17:
             self.current_flying_frame += 1
         self.draw()
 

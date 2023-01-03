@@ -79,7 +79,7 @@ class Dot:
                 self.app.dots[self.column][0] = Dot(self.column, 0, self.app)
 
     def movement_coefficient(self):
-        return (row_into_y(self.row) - self.y) / 168  # this is to aid with wobbling and
+        return (row_into_y(self.row) - self.y) / 168  # this is to aid with wobbling and chained falls
 
     def update_position(self):
         # there are 12 frames when it falls
@@ -123,8 +123,6 @@ class Dot:
     def fly(self):
         if 2 <= self.current_flying_frame <= 7:
             self.x -= 125
-        elif self.current_flying_frame == 8:
-            self.app.mode = "Pause"
         elif 9 <= self.current_flying_frame <= 15:
             self.x += 125
         elif self.current_flying_frame == 16 or self.current_flying_frame == 17 or self.current_flying_frame == 24:
@@ -135,13 +133,16 @@ class Dot:
             self.x -= 5
             self.current_flying_frame = 0
             pg.draw.circle(self.surface, self.colour, center=(50, 50), radius=25)
-            self.app.mode = "Game"
         if self.current_flying_frame != 0 and self.current_flying_frame != 8:
             self.current_flying_frame += 1
         self.rect = self.surface.get_rect(left=self.x, top=self.y)
         self.app.screen.blit(self.surface, self.rect)
 
     def fly_out(self):
+        self.y = row_into_y(self.row)
+        self.rect = self.surface.get_rect(left=self.x, top=self.y)
+        self.current_falling_frame = 0
+        self.current_highlight_frame = 0
         self.current_flying_frame = 1
         pg.draw.circle(self.surface, (255, 255, 255), center=(50, 50), radius=25)
 
