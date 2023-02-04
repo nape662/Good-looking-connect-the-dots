@@ -14,10 +14,12 @@ class Button:
         pg.draw.rect(self.surface, colour, (0, 0, self.width, self.height), border_radius=int(self.height * 0.5))
         self.font = pg.font.Font(None, 64)
         self.text = self.font.render(text, True, (255, 255, 255))
-        self.text_rect = self.text.get_rect(center = (self.width * 0.5, self.height * 0.5), width=self.width-20, height=self.height-20)
+        self.text_rect = self.text.get_rect(center=(self.width * 0.5, self.height * 0.5), width=self.width-20, height=self.height-20)
         self.command = command
         self.current_flying_frame = 0
+    # Init setzt die Position, Farbe usw.
 
+    # Überprüft clicks
     def mouse_in_button(self):
         x, y = pg.mouse.get_pos()
         if self.x <= x <= self.x + self.width and self.y <= y <= self.y + self.height:
@@ -25,6 +27,7 @@ class Button:
         else:
             return False
 
+    # Animationen
     def draw(self):
         self.app.screen.blit(self.surface, self.rect)
         self.surface.blit(self.text, self.text_rect)

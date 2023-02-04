@@ -50,37 +50,30 @@ class Dot:
         self.highlight_surface.set_colorkey((0, 0, 0))
         self.current_flying_frame = 0
 
+    # Beginnt den Fall
     def drop(self):
         # immediately becomes lower dot as a game element
         if self.row < 5:
             self.app.dots[self.column][self.row + 1] = self
         self.row += 1
-        if self.current_falling_frame <= 0 or self.current_falling_frame > 18:
+        self.coefficient = self.movement_coefficient()
+        # if self.coefficient < 4:  # thing doesn't fall from the very top
+        #    delay = 12 * round(self.coefficient * 1.69)
+        if self.current_falling_frame == 0:
             if self.row < 5:
                 self.current_falling_frame = min(-7, self.app.dots[self.column][self.row+1].current_falling_frame-4)
+                print(self.app.dots[self.column][self.row+1].current_falling_frame-4)
             else:
                 self.current_falling_frame = -7
         else:  # for chained falls
-            if self.row < 5 and self.app.dots[self.column][self.row+1].current_falling_frame != 0:
+            if self.row < 5 and self.app.dots[self.column][self.row+1].current_falling_frame <= 1:
                 self.current_falling_frame = self.app.dots[self.column][self.row+1].current_falling_frame-4
             else:
                 self.current_falling_frame = 1
-        self.coefficient = self.movement_coefficient()
+        if self.current_falling_frame % 2 == 0 and self.current_falling_frame < 0:
+            self.current_falling_frame -= 1
 
-    def pop(self, in_loop=False, continue_game=True):
-        self.app.recently_popped.append(self)
-        self.current_disappearing_frame = 1
-        for i in range(self.row-1, -1, -1):
-            self.app.dots[self.column][i].drop()
-        if continue_game:
-            if in_loop:
-                self.app.dots[self.column][0] = Dot(self.column, 0, self.app, self.colour_number)
-            else:
-                self.app.dots[self.column][0] = Dot(self.column, 0, self.app)
-
-    def movement_coefficient(self):
-        return (row_into_y(self.row) - self.y) / 168  # this is to aid with wobbling and chained falls
-
+    # Beschreibt die Fall-Animation
     def update_position(self):
         # there are 12 frames when it falls
         if self.current_falling_frame < 0:
@@ -90,14 +83,31 @@ class Dot:
             self.rect = self.surface.get_rect(left=self.x, top=self.y)
             self.current_falling_frame += 1
         # then it should wobble in elif's for next 12 frames (just copy frame by frame what's happening in original game)
-        elif 13 <= self.current_falling_frame <= 24:  # to speed up some falls when dots have just landed (still need to wobble here)
+        elif 13 <= self.current_falling_frame <= 16:  # to speed up some falls when dots have just landed (still need to wobble here)
             self.y = round(self.y)
             self.rect = self.surface.get_rect(left=self.x, top=self.y)
             self.current_falling_frame += 1
-        elif self.current_falling_frame > 24:
+        elif self.current_falling_frame > 16:
             self.current_falling_frame = 0
         self.app.screen.blit(self.surface, self.rect)
 
+    # Hilfe für update_position
+    def movement_coefficient(self):
+        return (row_into_y(self.row) - self.y) / 168  # this is to aid with wobbling and chained falls
+
+    # Beginnt Verschwinden und schafft neuen Dot
+    def pop(self, in_loop=False, continue_game=True):
+        self.app.recently_popped.append(self)
+        self.current_disappearing_frame = 1
+        for i in range(self.row - 1, -1, -1):
+            self.app.dots[self.column][i].drop()
+        if continue_game:
+            if in_loop:
+                self.app.dots[self.column][0] = Dot(self.column, 0, self.app, self.colour_number)
+            else:
+                self.app.dots[self.column][0] = Dot(self.column, 0, self.app)
+
+    # Animation von Verschwinden
     def disappear(self):
         if 6 >= self.current_disappearing_frame >= 1:
             self.surface.fill((0, 0, 0))
@@ -107,6 +117,7 @@ class Dot:
         elif self.current_disappearing_frame > 6:
             self.app.recently_popped.remove(self)
 
+    # Animation von Highlight
     def highlight(self):
         if 0 < self.current_highlight_frame <= 3:
             self.current_highlight_frame += 1
@@ -120,6 +131,7 @@ class Dot:
             self.highlight_surface.set_alpha(0)
             self.current_highlight_frame = 0
 
+    # 3 letzte für Transition Mode
     def fly(self):
         if 2 <= self.current_flying_frame <= 7:
             self.x -= 125

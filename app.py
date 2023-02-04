@@ -16,25 +16,28 @@ PAUSE_TRANSITION_LENGTH = 25
 # Process finished with exit code -1073741819 (0xC0000005) ??????????????????
 
 
-def get_square_coord(coords):
+def get_square_coord(coords):  # sodass die App weiß, welcher Punkt ist in der Nähe
     x, y = coords
     return max(min(int((x - (SCREEN_WIDTH - 600) / 2) // 100), 5), 0), min(int((y - 175) // 100), 5)
 
 
 class App:
     def __init__(self):
+
+        # Fenster öffnen
         pg.init()
         pg.display.set_caption("Dots")
         self.screen = pg.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
+        self.FPS = FPS
+        # Background malen
         self.screen.fill(BG_COLOR)
         self.background_highlight_surface = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.background_highlight_surface.set_alpha(0)
-        self.game_tick = 0
-        self.transition_tick = 0
+        # 12314123123231321 Hilfe-Variablen
         self.running = False
-        self.FPS = FPS
-        self.follow_mouse = False
+        self.follow_mouse = True
         self.recently_clicked = False
+
         self.recently_popped = list()
         self.connected = list()
         self.lines = list()  # each item in lines is a set containing 2 Dots
@@ -43,6 +46,7 @@ class App:
             for j in range(5, -1, -1):
                 self.dots[i][j] = Dot(i, j, self)
         self.buttons = list()
+
         self.continue_button = Button(self, (PAUSE_BUTTON_X, SCREEN_HEIGHT * PAUSE_BUTTON_Y_RELATIVE),
                                       "Unpause", PAUSE_BUTTON_WIDTH, COLOUR_LIST[2])
         self.restart_button = Button(self,
@@ -50,10 +54,14 @@ class App:
                                      "Restart", PAUSE_BUTTON_WIDTH, COLOUR_LIST[3])
         self.buttons.append(self.restart_button)
         self.buttons.append(self.continue_button)
-        self.mode = None
-        self.restart()
-        # self.mode set in Dots.fly() when dots flew in/out properly
 
+        # Modes-Management
+        self.game_tick = 0
+        self.transition_tick = 0
+        self.mode = None
+        self.restart()  # Los geht's
+
+    # 3 nächste wechseln Mode
     def pause(self):
         self.mode = "Pause transition"
         self.transition_tick = 1
@@ -83,6 +91,8 @@ class App:
             for j in range(5, -1, -1):
                 self.dots[i][j] = Dot(i, j, self)
 
+    # Für Mode "Game" bis "handle_inputs"
+    # 2 für gerade-orientierte Linien
     def draw_line(self, new_dot):
         self.connected.append(new_dot)
         new_dot.current_highlight_frame = 1
@@ -100,6 +110,7 @@ class App:
         self.lines.pop(-1)
         self.set_follow_mouse_timer()
 
+    # 2 für die Linie, die die Maus folgt
     def line_follow_mouse(self):
         if self.follow_mouse and self.connected and (
                 self.connected[-1].current_falling_frame == 0 or self.connected[-1].current_falling_frame >= 7):
@@ -110,6 +121,7 @@ class App:
         pg.time.set_timer(WAIT_FOR_LINE, 100)
         self.follow_mouse = False
 
+    # Einfach Doubleclick
     def handle_doubleclick(self):
         if self.recently_clicked:
             dotx, doty = get_square_coord(pg.mouse.get_pos())
@@ -122,6 +134,7 @@ class App:
             self.recently_clicked = get_square_coord(pg.mouse.get_pos())
             pg.time.set_timer(WAIT_FOR_DOUBLECLICK, 400)
 
+    # 3 Hilfe Methoden
     def connected_has_loop(self):
         for i in range(len(self.connected)):
             for j in range(i):
@@ -135,6 +148,16 @@ class App:
                 return True
         return False
 
+    # auto-Restart, wenn es keine mögliche Anschlüsse gibt
+    def exclude_impossible(self):  # checks if there are dots to pair up
+        for i in range(6):
+            for j in range(5):
+                if self.dots[i][j].colour_number == self.dots[i][j + 1].colour_number \
+                        or self.dots[j][i].colour_number == self.dots[j + 1][i].colour_number:
+                    return False
+        self.restart()
+
+    # Wie man Dots löscht
     def handle_connected(self):
         if len(self.connected) > 1:
             if self.connected_has_loop():
@@ -148,6 +171,7 @@ class App:
         self.connected.clear()
         self.lines.clear()
 
+    # Welche Dots anzuschließen
     def handle_mouse(self):
         try:
             dotx, doty = get_square_coord(pg.mouse.get_pos())
@@ -166,6 +190,8 @@ class App:
         except AttributeError:  # if click on screen then release off-screen, you get AttributeError
             pass
 
+    # Was hat User gemacht?
+    # Aktiviert andere Methoden
     def handle_inputs(self):
         if self.mode == "Game" and self.game_tick >= 10:
             for event in pg.event.get():
@@ -197,18 +223,12 @@ class App:
                         self.unpause()
                     if self.restart_button.mouse_in_button():
                         self.restart()
+                elif event.type == pg.KEYDOWN:
+                    if event.key == pg.K_ESCAPE:
+                        self.unpause()
 
-    def exclude_impossible(self):  # checks if there are dots to pair up
-        for i in range(6):
-            for j in range(5):
-                if self.dots[i][j].colour_number == self.dots[i][j + 1].colour_number \
-                        or self.dots[j][i].colour_number == self.dots[j + 1][i].colour_number:
-                    return False
-        for i in range(6):
-            for j in range(6):
-                self.dots[i][j].pop()
-
-    def draw_on_screen(self):
+    # Alles malen
+    def update_screen(self):
         self.screen.fill(BG_COLOR)
         if self.mode == "Game" and self.game_tick >= 10:
             for i in self.recently_popped:
@@ -239,15 +259,16 @@ class App:
             self.restart_button.draw()
         pg.display.flip()
 
+    # Main Loop (Zwei obere Methoden) und Zeit-Management
     def run(self):
         self.running = True
         while self.running:
-            pg.time.Clock().tick_busy_loop(FPS)
+            pg.time.Clock().tick_busy_loop(FPS)  # setzt den FPS-Wert
             self.handle_inputs()
-            self.exclude_impossible()
-            self.draw_on_screen()
+            self.update_screen()
             if self.mode == "Game":
                 self.game_tick += 1
+                self.exclude_impossible()
             elif self.mode == "Pause transition":
                 self.transition_tick += 1
                 if self.transition_tick == PAUSE_TRANSITION_LENGTH:
