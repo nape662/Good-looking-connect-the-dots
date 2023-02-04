@@ -7,8 +7,8 @@ BG_COLOR = (240, 228, 202, 255)
 COLOUR_LIST = [(125, 179, 73), (210, 106, 70), (243, 192, 58), (123, 85, 125), (90, 191, 211)]
 
 
-def row_into_y(y):
-    return (y + 1.75) * 100
+def row_into_y(row):
+    return (row + 1.75) * 100
 
 
 class Dot:
@@ -40,7 +40,7 @@ class Dot:
             if self.app.dots[self.column][1].current_falling_frame < 0:
                 self.current_falling_frame = self.app.dots[self.column][1].current_falling_frame - 4
             else:
-                self.current_falling_frame = -7
+                self.current_falling_frame = -11
         else:
             self.current_falling_frame = -7 + (self.row-5) * 4
         self.coefficient = self.movement_coefficient()
@@ -50,30 +50,25 @@ class Dot:
         self.highlight_surface.set_colorkey((0, 0, 0))
         self.current_flying_frame = 0
 
-    # Beginnt den Fall
+    # Setzt die Wartezeit vor dem Fall
     def drop(self):
-        # immediately becomes lower dot as a game element
         if self.row < 5:
             self.app.dots[self.column][self.row + 1] = self
         self.row += 1
         self.coefficient = self.movement_coefficient()
-        # if self.coefficient < 4:  # thing doesn't fall from the very top
-        #    delay = 12 * round(self.coefficient * 1.69)
-        if self.current_falling_frame == 0:
-            if self.row < 5:
-                self.current_falling_frame = min(-7, self.app.dots[self.column][self.row+1].current_falling_frame-4)
-                print(self.app.dots[self.column][self.row+1].current_falling_frame-4)
-            else:
-                self.current_falling_frame = -7
-        else:  # for chained falls
-            if self.row < 5 and self.app.dots[self.column][self.row+1].current_falling_frame <= 1:
-                self.current_falling_frame = self.app.dots[self.column][self.row+1].current_falling_frame-4
-            else:
-                self.current_falling_frame = 1
-        if self.current_falling_frame % 2 == 0 and self.current_falling_frame < 0:
-            self.current_falling_frame -= 1
+        if self.coefficient < 4:  # thing doesn't fall from the very top
+            delay = 4 * round(self.coefficient * 1.68)  # because movement_coefficient() basically counts row difference
+        else:
+            delay = 4 * self.row
+        if self.row < 5:
+            if self.app.dots[self.column][self.row+1].current_falling_frame == 0:
+                self.current_falling_frame = -3 - delay
+            else:  # can't be above 0 with current algorithm
+                self.current_falling_frame = self.app.dots[self.column][self.row+1].current_falling_frame - 4
+        else:
+            self.current_falling_frame = -3 - delay
 
-    # Beschreibt die Fall-Animation
+    # Fall-Animation, ist jeder Tick ausführt, nicht jeder Tick bewegt sich aber der Dot
     def update_position(self):
         # there are 12 frames when it falls
         if self.current_falling_frame < 0:
@@ -95,7 +90,7 @@ class Dot:
     def movement_coefficient(self):
         return (row_into_y(self.row) - self.y) / 168  # this is to aid with wobbling and chained falls
 
-    # Beginnt Verschwinden und schafft neuen Dot
+    # Beginnt Verschwinden (ruft drop() von anderen) und schafft einen neuen Dot
     def pop(self, in_loop=False, continue_game=True):
         self.app.recently_popped.append(self)
         self.current_disappearing_frame = 1
