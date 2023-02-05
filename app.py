@@ -2,8 +2,8 @@ from dots import *
 from button import *
 
 FPS = 60
-WAIT_FOR_LINE = pg.event.custom_type()
-WAIT_FOR_DOUBLECLICK = pg.event.custom_type()
+WAIT_FOR_LINE = pg.event.custom_type()  # pg has a perverted system of timers that can only output pg.event's that are later collected in handle_inputs
+WAIT_FOR_DOUBLECLICK = pg.event.custom_type()  # so we need to create special types of events
 SCREEN_WIDTH = 650
 SCREEN_HEIGHT = 800
 BG_COLOR = (240, 228, 202, 255)
@@ -33,7 +33,7 @@ class App:
         self.screen.fill(BG_COLOR)
         self.background_highlight_surface = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.background_highlight_surface.set_alpha(0)
-        # 12314123123231321 Hilfe-Variablen
+        # Hilfe-Variablen
         self.running = False
         self.follow_mouse = True
         self.recently_clicked = False
@@ -134,7 +134,7 @@ class App:
             self.recently_clicked = get_square_coord(pg.mouse.get_pos())
             pg.time.set_timer(WAIT_FOR_DOUBLECLICK, 400)
 
-    # 3 Hilfe Methoden
+    # 3 Hilfe Methoden für handle_inputs
     def connected_has_loop(self):
         for i in range(len(self.connected)):
             for j in range(i):
@@ -147,6 +147,14 @@ class App:
             if i == self.connected[-1]:
                 return True
         return False
+
+    def highlight_background(self):
+        if self.connected_has_loop():
+            self.background_highlight_surface.set_alpha(40)
+            self.background_highlight_surface.fill(self.connected[0].colour)
+        else:
+            self.background_highlight_surface.set_alpha(0)
+        self.screen.blit(self.background_highlight_surface, (0, 0))
 
     # auto-Restart, wenn es keine mögliche Anschlüsse gibt
     def exclude_impossible(self):  # checks if there are dots to pair up
@@ -171,7 +179,7 @@ class App:
         self.connected.clear()
         self.lines.clear()
 
-    # Welche Dots anzuschließen
+    # Welche Dots anzuschließen und wenn
     def handle_mouse(self):
         try:
             dotx, doty = get_square_coord(pg.mouse.get_pos())
@@ -213,6 +221,7 @@ class App:
                         self.pause()
             if pg.mouse.get_pressed()[0]:
                 self.handle_mouse()
+
         elif self.mode == "Pause":
             for event in pg.event.get():
                 if event.type == pg.QUIT:
@@ -242,12 +251,7 @@ class App:
                 pg.draw.line(self.screen, first_dot.colour, first_dot.rect.center, second_dot.rect.center,
                              width=10)
             self.line_follow_mouse()
-            if self.connected_has_loop():
-                self.background_highlight_surface.set_alpha(40)
-                self.background_highlight_surface.fill(self.connected[0].colour)
-            else:
-                self.background_highlight_surface.set_alpha(0)
-            self.screen.blit(self.background_highlight_surface, (0, 0))
+            self.highlight_background()
         elif self.mode == "Pause transition":
             self.continue_button.fly()
             self.restart_button.fly()

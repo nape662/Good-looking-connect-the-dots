@@ -91,16 +91,15 @@ class Dot:
         return (row_into_y(self.row) - self.y) / 168  # this is to aid with wobbling and chained falls
 
     # Beginnt Verschwinden (ruft drop() von anderen) und schafft einen neuen Dot
-    def pop(self, in_loop=False, continue_game=True):
+    def pop(self, in_loop=False):
         self.app.recently_popped.append(self)
         self.current_disappearing_frame = 1
         for i in range(self.row - 1, -1, -1):
             self.app.dots[self.column][i].drop()
-        if continue_game:
-            if in_loop:
-                self.app.dots[self.column][0] = Dot(self.column, 0, self.app, self.colour_number)
-            else:
-                self.app.dots[self.column][0] = Dot(self.column, 0, self.app)
+        if in_loop:
+            self.app.dots[self.column][0] = Dot(self.column, 0, self.app, self.colour_number)
+        else:
+            self.app.dots[self.column][0] = Dot(self.column, 0, self.app)
 
     # Animation von Verschwinden
     def disappear(self):

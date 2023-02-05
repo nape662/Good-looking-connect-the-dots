@@ -19,7 +19,7 @@ class Button:
         self.current_flying_frame = 0
     # Init setzt die Position, Farbe usw.
 
-    # Überprüft clicks
+    # Überprüft, wo die Maus sich befindet
     def mouse_in_button(self):
         x, y = pg.mouse.get_pos()
         if self.x <= x <= self.x + self.width and self.y <= y <= self.y + self.height:
@@ -27,7 +27,7 @@ class Button:
         else:
             return False
 
-    # Animationen
+    # Animationen für Übergang ("Transition")
     def draw(self):
         self.app.screen.blit(self.surface, self.rect)
         self.surface.blit(self.text, self.text_rect)
