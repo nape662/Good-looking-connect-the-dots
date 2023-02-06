@@ -20,7 +20,7 @@ class Dot:
         self.y = row_into_y(self.row) - SCREEN_HEIGHT
 
         # if you make a loop then dots of this colour shouldn't spawn after you clear the loop
-        if exclude_this_colour is not None:
+        if exclude_this_colour is not None:  # all the colour number stuff is exclusively for this "if"
             numbers = [i for i in range(len(COLOUR_LIST))]
             numbers.pop(exclude_this_colour)
             self.colour_number = choice(numbers)
@@ -42,7 +42,7 @@ class Dot:
             else:
                 self.current_falling_frame = -11
         else:
-            self.current_falling_frame = -7 + (self.row-5) * 4
+            self.current_falling_frame = -7 + (self.row-5) * 4  # for restart only
         self.coefficient = self.movement_coefficient()
         self.current_disappearing_frame = 0
         self.current_highlight_frame = 0
@@ -57,13 +57,16 @@ class Dot:
         self.row += 1
         self.coefficient = self.movement_coefficient()
         if self.coefficient < 4:  # thing doesn't fall from the very top
-            delay = 4 * round(self.coefficient * 1.68)  # because movement_coefficient() basically counts row difference
+            delay = 4 * max(round(self.coefficient * 1.68), 1)  # because movement_coefficient() basically counts row difference
         else:
             delay = 4 * self.row
         if self.row < 5:
-            if self.app.dots[self.column][self.row+1].current_falling_frame == 0:
-                self.current_falling_frame = -3 - delay
-            else:  # can't be above 0 with current algorithm
+            if self.app.dots[self.column][self.row+1].current_falling_frame >= 0:
+                if self.current_falling_frame > 0:
+                    self.current_falling_frame = 1  # chained falls without delay
+                else:
+                    self.current_falling_frame = -3 - delay
+            else:
                 self.current_falling_frame = self.app.dots[self.column][self.row+1].current_falling_frame - 4
         else:
             self.current_falling_frame = -3 - delay
@@ -72,13 +75,14 @@ class Dot:
     def update_position(self):
         # there are 12 frames when it falls
         if self.current_falling_frame < 0:
-            self.current_falling_frame += 2
+            self.current_falling_frame += 2  # 0 is the base position and +2 is to skip 0 in retrospect should have probably
+            # made base value 17 or something big to make stuff easier
         elif 1 <= self.current_falling_frame <= 12:
             self.y += (2 * self.current_falling_frame + 1) * self.coefficient
             self.rect = self.surface.get_rect(left=self.x, top=self.y)
             self.current_falling_frame += 1
-        # then it should wobble in elif's for next 12 frames (just copy frame by frame what's happening in original game)
-        elif 13 <= self.current_falling_frame <= 16:  # to speed up some falls when dots have just landed (still need to wobble here)
+        # TODO then it should wobble for the next 12 frames (just copy frame by frame what's happening in original game)
+        elif 13 <= self.current_falling_frame <= 16:  # to speed up some falls when dots have just landed (makes them count as chained)
             self.y = round(self.y)
             self.rect = self.surface.get_rect(left=self.x, top=self.y)
             self.current_falling_frame += 1
@@ -113,14 +117,14 @@ class Dot:
 
     # Animation von Highlight
     def highlight(self):
-        if 0 < self.current_highlight_frame <= 3:
+        if 1 <= self.current_highlight_frame <= 3:
             self.current_highlight_frame += 1
         elif 4 <= self.current_highlight_frame <= 24:
             self.highlight_surface.fill((0, 0, 0))
             self.highlight_surface.set_alpha(255 - self.current_highlight_frame * 10)
             pg.draw.circle(self.highlight_surface, self.colour, center=(50, 50), radius=25+self.current_highlight_frame)
-            self.current_highlight_frame += 1
             self.app.screen.blit(self.highlight_surface, self.rect)
+            self.current_highlight_frame += 1
         elif self.current_highlight_frame > 20:
             self.highlight_surface.set_alpha(0)
             self.current_highlight_frame = 0

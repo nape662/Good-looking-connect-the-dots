@@ -117,7 +117,7 @@ class App:
             pg.draw.line(self.screen, self.connected[-1].colour, self.connected[-1].rect.center, pg.mouse.get_pos(),
                          width=10)
 
-    def set_follow_mouse_timer(self):
+    def set_follow_mouse_timer(self):  # es sieht hässlich aus, wenn diese Linie immer anwesend ist, deshalb kurzes Timer
         pg.time.set_timer(WAIT_FOR_LINE, 100)
         self.follow_mouse = False
 
@@ -134,7 +134,7 @@ class App:
             self.recently_clicked = get_square_coord(pg.mouse.get_pos())
             pg.time.set_timer(WAIT_FOR_DOUBLECLICK, 400)
 
-    # 3 Hilfe Methoden für handle_inputs
+    # 2 Hilfe Methoden für handle_inputs
     def connected_has_loop(self):
         for i in range(len(self.connected)):
             for j in range(i):
@@ -142,6 +142,7 @@ class App:
                     return True
         return False
 
+    # Hilfe für dots highlight
     def just_made_loop(self):
         for i in self.connected[:-1]:
             if i == self.connected[-1]:
@@ -165,7 +166,7 @@ class App:
                     return False
         self.restart()
 
-    # Wie man Dots löscht
+    # Wie man nur gewählte Dots löscht
     def handle_connected(self):
         if len(self.connected) > 1:
             if self.connected_has_loop():
@@ -184,7 +185,7 @@ class App:
         try:
             dotx, doty = get_square_coord(pg.mouse.get_pos())
             if doty >= 0:
-                if self.dots[dotx][doty].current_falling_frame == 0 or self.dots[dotx][doty].current_falling_frame >= 7:
+                if self.dots[dotx][doty].current_falling_frame == 0 or self.dots[dotx][doty].current_falling_frame >= 13:
                     if not self.connected:
                         self.connected.append(self.dots[dotx][doty])
                         self.dots[dotx][doty].current_highlight_frame = 1
@@ -270,6 +271,7 @@ class App:
             pg.time.Clock().tick_busy_loop(FPS)  # setzt den FPS-Wert
             self.handle_inputs()
             self.update_screen()
+
             if self.mode == "Game":
                 self.game_tick += 1
                 self.exclude_impossible()
