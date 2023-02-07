@@ -50,7 +50,7 @@ class Dot:
         self.highlight_surface.set_colorkey((0, 0, 0))
         self.current_flying_frame = 0
 
-    # Setzt die Wartezeit vor dem Fall
+    # Setzt den Fall in Bewegung
     def drop(self):
         if self.row < 5:
             self.app.dots[self.column][self.row + 1] = self
@@ -79,15 +79,14 @@ class Dot:
             # made base value 17 or something big to make stuff easier
         elif 1 <= self.current_falling_frame <= 12:
             self.y += (2 * self.current_falling_frame + 1) * self.coefficient
-            self.rect = self.surface.get_rect(left=self.x, top=self.y)
             self.current_falling_frame += 1
         # TODO then it should wobble for the next 12 frames (just copy frame by frame what's happening in original game)
-        elif 13 <= self.current_falling_frame <= 16:  # to speed up some falls when dots have just landed (makes them count as chained)
+        elif 13 <= self.current_falling_frame <= 20:  # to speed up some falls when dots have just landed (makes them count as chained)
             self.y = round(self.y)
-            self.rect = self.surface.get_rect(left=self.x, top=self.y)
             self.current_falling_frame += 1
-        elif self.current_falling_frame > 16:
+        elif self.current_falling_frame > 20:
             self.current_falling_frame = 0
+        self.rect = self.surface.get_rect(left=self.x, top=self.y)
         self.app.screen.blit(self.surface, self.rect)
 
     # Hilfe für update_position

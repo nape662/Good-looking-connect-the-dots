@@ -3,7 +3,7 @@ from button import *
 
 FPS = 60
 WAIT_FOR_LINE = pg.event.custom_type()  # pg has a perverted system of timers that can only output pg.event's that are later collected in handle_inputs
-WAIT_FOR_DOUBLECLICK = pg.event.custom_type()  # so we need to create special types of events
+WAIT_FOR_DOUBLECLICK = pg.event.custom_type()  # so we need to create special type of events for each timer
 SCREEN_WIDTH = 650
 SCREEN_HEIGHT = 800
 BG_COLOR = (240, 228, 202, 255)
@@ -157,7 +157,7 @@ class App:
             self.background_highlight_surface.set_alpha(0)
         self.screen.blit(self.background_highlight_surface, (0, 0))
 
-    # auto-Restart, wenn es keine mögliche Anschlüsse gibt
+    # auto-Restart, wenn es keine möglichen Anschlüsse gibt
     def exclude_impossible(self):  # checks if there are dots to pair up
         for i in range(6):
             for j in range(5):
@@ -210,7 +210,7 @@ class App:
                 elif event.type == pg.MOUSEBUTTONUP:
                     self.handle_connected()
                 elif event.type == WAIT_FOR_LINE:
-                    pg.time.set_timer(WAIT_FOR_LINE, 0)
+                    pg.time.set_timer(WAIT_FOR_LINE, 0)  # yes that's actually the conventional way to make one-time timers in pygame, don't ask me
                     self.follow_mouse = True
                 elif event.type == WAIT_FOR_DOUBLECLICK:
                     pg.time.set_timer(WAIT_FOR_DOUBLECLICK, 0)
@@ -254,14 +254,14 @@ class App:
             self.line_follow_mouse()
             self.highlight_background()
         elif self.mode == "Pause transition":
-            self.continue_button.fly()
-            self.restart_button.fly()
+            for i in self.buttons:
+                i.fly()
             for i in self.dots:
                 for j in i:
                     j.fly()
         elif self.mode == "Pause":
-            self.continue_button.draw()
-            self.restart_button.draw()
+            for i in self.buttons:
+                i.draw()
         pg.display.flip()
 
     # Main Loop (Zwei obere Methoden) und Zeit-Management
@@ -271,7 +271,6 @@ class App:
             pg.time.Clock().tick_busy_loop(FPS)  # setzt den FPS-Wert
             self.handle_inputs()
             self.update_screen()
-
             if self.mode == "Game":
                 self.game_tick += 1
                 self.exclude_impossible()
